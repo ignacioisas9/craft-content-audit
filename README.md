@@ -3,8 +3,11 @@
 Audit your Craft CMS 5 content for common issues. Currently detects:
 
 - **Orphaned Assets** — files uploaded to a volume that aren't referenced by any entry
+- **Missing Alt Text** — images that have no alt text set
+- **Large Assets** — files over 2 MB (warning) or 5 MB (critical); threshold configurable via `config/content-audit.php`
+- **Broken References** — entries whose relational fields point to disabled or deleted elements
 
-More checks coming: broken entry references, duplicate slugs, missing meta descriptions, and more.
+Results are stored in the database and persist between page loads. Each issue links directly to the offending element in the Control Panel.
 
 ---
 
@@ -83,12 +86,12 @@ That's it — the CP table picks it up automatically.
 
 ## Plugin Store Submission Checklist
 
-- [ ] Hosted on GitHub (public repo)
-- [ ] `CHANGELOG.md` kept up to date
-- [ ] Icon at `icon.svg` (square SVG, ideally 150×150)
-- [ ] `composer.json` `extra.craftcms.plugin` fields complete
-- [ ] Developer account at [id.craftcms.com](https://id.craftcms.com)
-- [ ] Plugin submitted at [plugins.craftcms.com/new](https://plugins.craftcms.com/new)
+- [x] Hosted on GitHub (public repo)
+- [x] `CHANGELOG.md` kept up to date
+- [x] Icon at `icon.svg` (square SVG, ideally 150×150)
+- [x] `composer.json` `extra.craftcms.plugin` fields complete
+- [x] Developer account at [id.craftcms.com](https://id.craftcms.com)
+- [x] Plugin submitted at [plugins.craftcms.com/new](https://plugins.craftcms.com/new)
 
 Craft Plugin Store review typically takes a few business days.
 
