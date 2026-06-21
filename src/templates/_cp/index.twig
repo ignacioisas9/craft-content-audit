@@ -1,0 +1,256 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Content Audit" %}
+
+{% block actionButton %}
+    <form method="post" action="">
+        {{ csrfInput() }}
+        {{ actionInput('content-audit/cp/run') }}
+        <button type="submit" class="btn submit">
+            {{ "Run Audit"|t('content-audit') }}
+        </button>
+    </form>
+{% endblock %}
+
+{# ── Left sidebar nav ─────────────────────────────────────── #}
+{% block sidebar %}
+<nav id="content-audit-nav">
+    <ul>
+        {% if results %}
+            {% set totalIssues = 0 %}
+            {% for handle, group in results %}
+                {% set totalIssues = totalIssues + group.issues|length %}
+            {% endfor %}
+
+            <li>
+                <a href="#audit-summary" class="nav-all">
+                    {{ "All checks"|t('content-audit') }}
+                    {% if totalIssues > 0 %}
+                        <span class="ca-badge ca-badge--warn">{{ totalIssues }}</span>
+                    {% else %}
+                        <span class="ca-badge ca-badge--ok">✓</span>
+                    {% endif %}
+                </a>
+            </li>
+
+            <li class="nav-divider"></li>
+
+            {% for handle, group in results %}
+                <li>
+                    <a href="#audit-{{ handle }}">
+                        {{ group.label|t('content-audit') }}
+                        {% if group.issues|length > 0 %}
+                            <span class="ca-badge ca-badge--warn">{{ group.issues|length }}</span>
+                        {% else %}
+                            <span class="ca-badge ca-badge--ok">✓</span>
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+
+        {% else %}
+            {# No run yet — show the planned checks as disabled items #}
+            <li class="nav-heading">{{ "Checks"|t('content-audit') }}</li>
+            <li class="nav-item--disabled">{{ "Orphaned Assets"|t('content-audit') }}</li>
+        {% endif %}
+    </ul>
+
+    {% if lastRunDate is not null %}
+        <div class="nav-meta">
+            {{ "Last run"|t('content-audit') }}<br>
+            <span>{{ lastRunDate|date('d M Y') }}</span><br>
+            <span>{{ lastRunDate|date('H:i') }}</span>
+        </div>
+    {% endif %}
+</nav>
+
+<style>
+#content-audit-nav {
+    padding: 14px 0;
+    font-size: 13px;
+}
+#content-audit-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+#content-audit-nav li {
+    margin: 0;
+}
+#content-audit-nav a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 20px;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 0;
+    transition: background .12s;
+    gap: 6px;
+}
+#content-audit-nav a:hover {
+    background: var(--gray-050);
+    color: var(--link-color);
+}
+.nav-all {
+    font-weight: 600;
+}
+.nav-divider {
+    height: 1px;
+    background: var(--hairline-color);
+    margin: 8px 14px;
+}
+.nav-heading {
+    padding: 4px 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--light-text-color);
+}
+.nav-item--disabled {
+    padding: 6px 20px;
+    color: var(--light-text-color);
+}
+.ca-badge {
+    display: inline-block;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.6;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.ca-badge--warn { background: #f39c12; color: #fff; }
+.ca-badge--ok   { background: #27ae60; color: #fff; }
+.nav-meta {
+    margin: 20px 20px 0;
+    font-size: 11px;
+    color: var(--light-text-color);
+    line-height: 1.6;
+}
+</style>
+{% endblock %}
+
+{# ── Main content ─────────────────────────────────────────── #}
+{% block content %}
+<div id="content-audit-cp">
+
+    {# Pre-run state #}
+    {% if results is null %}
+        <div class="pane" style="text-align:center; padding: 3rem 2rem;">
+            <span data-icon="search" aria-hidden="true" style="font-size:3rem; color: var(--medium-text-color);"></span>
+            <h2 style="margin-top: 1rem;">{{ "Ready to audit"|t('content-audit') }}</h2>
+            <p style="color: var(--medium-text-color);">
+                {{ 'Click "Run Audit" to scan your content for issues.'|t('content-audit') }}
+            </p>
+        </div>
+
+    {# Results state #}
+    {% else %}
+
+        {% set totalIssues = 0 %}
+        {% for handle, group in results %}
+            {% set totalIssues = totalIssues + group.issues|length %}
+        {% endfor %}
+
+        {# Summary bar #}
+        <div id="audit-summary" class="pane" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap: 1.5rem; flex-wrap: wrap; border-left: none;">
+            <div>
+                <strong style="font-size: 1.5rem;">{{ totalIssues }}</strong>
+                <span style="color: var(--medium-text-color); margin-left: .3rem;">
+                    {{ "issue"|t('content-audit') }}{{ totalIssues != 1 ? 's' }}
+                    {{ "found"|t('content-audit') }}
+                </span>
+            </div>
+            {% if duration is not null %}
+                <span style="color: var(--light-text-color); font-size: .85rem;">
+                    {{ 'Completed in {s}s'|t('content-audit', {s: duration}) }}
+                </span>
+            {% endif %}
+        </div>
+
+        {# All clear #}
+        {% if totalIssues == 0 %}
+            <div class="pane" style="text-align:center; padding: 2.5rem; border-left: none;">
+                <span data-icon="check" aria-hidden="true" style="font-size:2.5rem; color: #27ae60;"></span>
+                <h2 style="margin-top: .75rem;">{{ "Everything looks good!"|t('content-audit') }}</h2>
+                <p style="color: var(--medium-text-color);">{{ "No content issues were found."|t('content-audit') }}</p>
+            </div>
+
+        {# Issues per group #}
+        {% else %}
+            {% for handle, group in results %}
+                <div id="audit-{{ handle }}" class="pane" style="margin-bottom: 1.5rem; border-left: none;">
+                    <div style="display: flex; align-items: center; gap: .6rem; margin-bottom: 1rem;">
+                        <h2 style="margin: 0;">{{ group.label|t('content-audit') }}</h2>
+                        {% if group.issues|length > 0 %}
+                            <span class="ca-badge ca-badge--warn">{{ group.issues|length }}</span>
+                        {% else %}
+                            <span class="ca-badge ca-badge--ok">✓</span>
+                        {% endif %}
+                    </div>
+
+                    {% if group.issues|length == 0 %}
+                        <p style="color: var(--medium-text-color); margin: 0;">{{ "No issues found."|t('content-audit') }}</p>
+                    {% else %}
+                        <div class="tableview">
+                            <table class="data fullwidth">
+                                <thead>
+                                    <tr>
+                                        {% for col in group.columns %}
+                                            <th>{{ col.label|t('content-audit') }}</th>
+                                        {% endfor %}
+                                        <th>{{ "Severity"|t('content-audit') }}</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for issue in group.issues %}
+                                        <tr>
+                                            {% for col in group.columns %}
+                                                <td {% if loop.first %}style="font-weight:500;"{% else %}style="color:var(--medium-text-color);"{% endif %}>
+                                                    {% if loop.first and issue.context.thumbUrl is defined and issue.context.thumbUrl %}
+                                                        <div style="display:flex; align-items:center; gap:10px;">
+                                                            <img src="{{ issue.context.thumbUrl }}"
+                                                                 style="width:36px; height:36px; object-fit:cover; border-radius:4px; flex-shrink:0; border:1px solid var(--hairline-color);"
+                                                                 alt="">
+                                                            {{ issue.context[col.key] ?? '—' }}
+                                                        </div>
+                                                    {% else %}
+                                                        {{ issue.context[col.key] ?? '—' }}
+                                                    {% endif %}
+                                                </td>
+                                            {% endfor %}
+                                            <td>
+                                                {% if issue.severity == 'error' %}
+                                                    <span style="color:#e74c3c;font-weight:600;">● Error</span>
+                                                {% elseif issue.severity == 'critical' %}
+                                                    <span style="color:#e74c3c;font-weight:600;">● Critical</span>
+                                                {% elseif issue.severity == 'warning' %}
+                                                    <span style="color:#f39c12;font-weight:600;">● Warning</span>
+                                                {% else %}
+                                                    <span style="color:var(--medium-text-color);">● Info</span>
+                                                {% endif %}
+                                            </td>
+                                            <td style="text-align:right;">
+                                                {% if issue.cpEditUrl %}
+                                                    <a href="{{ issue.cpEditUrl }}" class="btn small">
+                                                        {{ "View"|t('content-audit') }}
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+    {% endif %}
+</div>
+{% endblock %}

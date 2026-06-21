@@ -1,0 +1,42 @@
+{
+    "name": "kooba/craft-content-audit",
+    "description": "Content audit tools for Craft CMS \u2014 detect orphaned assets, broken entry references, duplicate slugs, and more.",
+    "type": "craft-plugin",
+    "version": "1.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "audit",
+        "content",
+        "assets",
+        "seo"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Kooba",
+            "homepage": "https://kooba.ie"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^5.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "kooba\\contentaudit\\": "src/"
+        }
+    },
+    "extra": {
+        "class": "kooba\\contentaudit\\ContentAudit",
+        "handle": "content-audit",
+        "name": "Content Audit",
+        "version": "1.0.0",
+        "description": "Audit your Craft CMS content for orphaned assets, broken references, and more.",
+        "developer": "Kooba",
+        "developerUrl": "https://kooba.ie",
+        "documentationUrl": "https://github.com/kooba/craft-content-audit",
+        "changelogUrl": "https://raw.githubusercontent.com/kooba/craft-content-audit/main/CHANGELOG.md",
+        "hasCpSection": true,
+        "hasCpSettings": false
+    }
+}

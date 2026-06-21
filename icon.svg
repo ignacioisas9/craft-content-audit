@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"
+    d="M68,36 A30,30 0 1,0 8,36 A30,30 0 1,0 68,36 Z
+       M56,36 A18,18 0 1,1 20,36 A18,18 0 1,1 56,36 Z"/>
+  <rect x="24" y="29" width="28" height="6" rx="3" fill="currentColor"/>
+  <rect x="24" y="39" width="20" height="6" rx="3" fill="currentColor"/>
+  <rect x="63" y="53" width="12" height="28" rx="6" fill="currentColor" transform="rotate(45 69 67)"/>
+</svg>
