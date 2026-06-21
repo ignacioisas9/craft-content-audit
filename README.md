@@ -25,7 +25,7 @@ More checks coming: broken entry references, duplicate slugs, missing meta descr
         }
     ],
     "require": {
-        "kooba/craft-content-audit": "*"
+        "iistudio/craft-content-audit": "*"
     }
 }
 ```
@@ -33,7 +33,7 @@ More checks coming: broken entry references, duplicate slugs, missing meta descr
 3. Run:
 
 ```bash
-composer update kooba/craft-content-audit
+composer update iistudio/craft-content-audit
 php craft plugin/install content-audit
 ```
 
@@ -127,4 +127,4 @@ public function actionIndex(): Response
 
 ## License
 
-MIT — see [LICENSE.md](LICENSE.md)
+Craft — see [LICENSE.md](LICENSE.md)

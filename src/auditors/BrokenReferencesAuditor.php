@@ -1,22 +1,18 @@
 <?php
 
-namespace kooba\contentaudit\auditors;
+namespace iistudio\contentaudit\auditors;
 
 use Craft;
 use craft\db\Query;
 use craft\elements\Entry;
-use kooba\contentaudit\models\AuditIssue;
+use iistudio\contentaudit\models\AuditIssue;
 
 /**
- * Detects entries whose relational fields (Assets, Entries, etc.)
- * point to elements that have been soft-deleted (moved to trash).
+ * Detects entries whose relational fields point to elements that are
+ * trashed, hard-deleted, or disabled.
  *
- * Strategy:
- *  - Join craft_relations with craft_elements on the TARGET side.
- *  - Filter where the target element has dateDeleted IS NOT NULL
- *    OR the target element row doesn't exist at all (hard deleted).
- *  - Source must be a canonical, non-deleted element.
- *  - One issue per unique (sourceId, fieldId, targetId) combination.
+ * - Trashed / hard-deleted targets → severity 'error'
+ * - Disabled targets               → severity 'warning'
  */
 class BrokenReferencesAuditor implements AuditorInterface
 {
@@ -44,15 +40,13 @@ class BrokenReferencesAuditor implements AuditorInterface
     {
         $issues = [];
 
-        // Find relations where the target element is trashed, missing, or disabled.
-        // LEFT JOIN so we catch targets hard-deleted from the DB too.
         $rows = (new Query())
             ->select([
                 'r.sourceId',
                 'r.targetId',
                 'r.fieldId',
                 'e_target.dateDeleted as targetDeletedAt',
-                'e_target.enabled as targetEnabled',
+                'e_target.enabled    as targetEnabled',
             ])
             ->distinct()
             ->from(['r' => '{{%relations}}'])
@@ -73,7 +67,29 @@ class BrokenReferencesAuditor implements AuditorInterface
             return [];
         }
 
-        // Pre-load field names to avoid N+1 queries on fields service.
+        // Bulk-load source entries to avoid N+1 queries.
+        $sourceIds = array_unique(array_map('intval', array_column($rows, 'sourceId')));
+        $targetIds = array_unique(array_map('intval', array_column($rows, 'targetId')));
+
+        $sourceElements = Entry::find()
+            ->id($sourceIds)
+            ->status(null)
+            ->indexBy('id')
+            ->all();
+
+        // Bulk-load last-known titles for broken targets in a single query.
+        $targetTitleMap = [];
+        if (!empty($targetIds)) {
+            $titleRows = (new Query())
+                ->select(['elementId', 'title'])
+                ->from('{{%elements_sites}}')
+                ->where(['elementId' => $targetIds])
+                ->all();
+            foreach ($titleRows as $r) {
+                $targetTitleMap[(int) $r['elementId']] = $r['title'];
+            }
+        }
+
         $fieldNames = [];
 
         foreach ($rows as $row) {
@@ -81,43 +97,25 @@ class BrokenReferencesAuditor implements AuditorInterface
             $targetId = (int) $row['targetId'];
             $fieldId  = (int) $row['fieldId'];
 
-            // Load field name (cached by fieldId).
             if (!isset($fieldNames[$fieldId])) {
                 $field = Craft::$app->getFields()->getFieldById($fieldId);
                 $fieldNames[$fieldId] = $field?->name ?? "Field #{$fieldId}";
             }
 
-            // Load the source element (the entry with the broken link).
-            $source = Craft::$app->getElements()->getElementById(
-                $sourceId,
-                null,
-                null,
-                ['status' => null]
-            );
-
+            $source = $sourceElements[$sourceId] ?? null;
             if (!$source) {
                 continue;
             }
 
-            // Try to find the target's last-known title from elements_sites.
-            $targetTitle = (new Query())
-                ->select(['title'])
-                ->from('{{%elements_sites}}')
-                ->where(['elementId' => $targetId])
-                ->scalar();
+            $targetTitle  = $targetTitleMap[$targetId] ?? null;
+            $sectionLabel = $source instanceof Entry ? ($source->section?->name ?? '—') : '—';
 
-            $sectionLabel = '—';
-            if ($source instanceof Entry) {
-                $sectionLabel = $source->section?->name ?? '—';
-            }
-
-            // Determine severity: deleted/missing = error, disabled = warning.
             $isTrashed  = $row['targetDeletedAt'] !== null;
             $isMissing  = $row['targetEnabled'] === null && $row['targetDeletedAt'] === null;
             $isDisabled = !$isTrashed && !$isMissing && (int) $row['targetEnabled'] === 0;
 
-            $severity   = ($isTrashed || $isMissing) ? 'error' : 'warning';
-            $targetSuffix = $isTrashed || $isMissing ? '(deleted)' : '(disabled)';
+            $severity     = ($isTrashed || $isMissing) ? 'error' : 'warning';
+            $targetSuffix = $isDisabled ? 'disabled' : ($isTrashed ? 'trashed' : 'hard-deleted');
 
             $issue = new AuditIssue();
             $issue->auditor   = $this->handle();
@@ -126,7 +124,7 @@ class BrokenReferencesAuditor implements AuditorInterface
             $issue->message   = sprintf(
                 '"%s" references a %s element via field "%s".',
                 $source->title ?? "Element #{$sourceId}",
-                $isDisabled ? 'disabled' : 'deleted',
+                $targetSuffix,
                 $fieldNames[$fieldId]
             );
             $issue->cpEditUrl = $source->cpEditUrl;
@@ -134,7 +132,9 @@ class BrokenReferencesAuditor implements AuditorInterface
                 'title'   => $source->title ?? "Element #{$sourceId}",
                 'section' => $sectionLabel,
                 'field'   => $fieldNames[$fieldId],
-                'target'  => $targetTitle ? "\"{$targetTitle}\" {$targetSuffix}" : "Element #{$targetId} {$targetSuffix}",
+                'target'  => $targetTitle
+                    ? "\"{$targetTitle}\" ({$targetSuffix})"
+                    : "Element #{$targetId} ({$targetSuffix})",
             ];
 
             $issues[] = $issue;

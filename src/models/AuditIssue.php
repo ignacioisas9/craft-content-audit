@@ -1,6 +1,6 @@
 <?php
 
-namespace kooba\contentaudit\models;
+namespace iistudio\contentaudit\models;
 
 use craft\base\Model;
 

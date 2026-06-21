@@ -1,25 +1,32 @@
 <?php
 
-namespace kooba\contentaudit\auditors;
+namespace iistudio\contentaudit\auditors;
 
 use Craft;
 use craft\db\Query;
 use craft\elements\Asset;
-use kooba\contentaudit\models\AuditIssue;
+use iistudio\contentaudit\models\AuditIssue;
 
 /**
  * Flags assets whose file size exceeds a configurable threshold.
  *
- * Default threshold: 2 MB. Oversized uploads are a common performance
- * issue — large images slow page loads and bloat storage costs.
+ * Default threshold: 2 MB. Oversized uploads slow page loads and
+ * bloat storage costs.
  *
- * To change the threshold, override THRESHOLD_BYTES in a subclass or
- * update the constant here before plugin submission.
+ * To customise the threshold, add a config file at
+ * config/content-audit.php in your Craft project:
+ *
+ *   return [
+ *       'largeAssetThreshold' => 5 * 1024 * 1024, // 5 MB
+ *   ];
  */
 class LargeAssetsAuditor implements AuditorInterface
 {
-    /** Flag assets larger than this (bytes). Default: 2 MB. */
-    private const THRESHOLD_BYTES = 2 * 1024 * 1024;
+    /** Default threshold in bytes (2 MB). Override via config/content-audit.php. */
+    private const DEFAULT_THRESHOLD_BYTES = 2 * 1024 * 1024;
+
+    /** Assets at or above this size are flagged as 'critical' instead of 'warning'. */
+    private const CRITICAL_THRESHOLD_BYTES = 5 * 1024 * 1024;
 
     public function handle(): string
     {
@@ -43,7 +50,8 @@ class LargeAssetsAuditor implements AuditorInterface
 
     public function run(): array
     {
-        $issues = [];
+        $issues    = [];
+        $threshold = $this->getThresholdBytes();
 
         // Find asset IDs over the threshold, excluding drafts and deleted elements.
         $ids = (new Query())
@@ -54,7 +62,7 @@ class LargeAssetsAuditor implements AuditorInterface
                 'e.dateDeleted' => null,
                 'e.canonicalId' => null,
             ])
-            ->andWhere(['>', 'a.size', self::THRESHOLD_BYTES])
+            ->andWhere(['>', 'a.size', $threshold])
             ->column();
 
         if (empty($ids)) {
@@ -71,13 +79,13 @@ class LargeAssetsAuditor implements AuditorInterface
         foreach ($assets as $asset) {
             $issue = new AuditIssue();
             $issue->auditor   = $this->handle();
-            $issue->severity  = $asset->size >= 5 * 1024 * 1024 ? 'critical' : 'warning';
+            $issue->severity  = $asset->size >= self::CRITICAL_THRESHOLD_BYTES ? 'critical' : 'warning';
             $issue->elementId = $asset->id;
             $issue->message   = sprintf(
                 '"%s" is %s — over the %s threshold.',
                 $asset->filename,
                 Craft::$app->getFormatter()->asShortSize($asset->size),
-                Craft::$app->getFormatter()->asShortSize(self::THRESHOLD_BYTES)
+                Craft::$app->getFormatter()->asShortSize($threshold)
             );
             $issue->cpEditUrl = $asset->cpEditUrl;
             $issue->context   = [
@@ -91,5 +99,14 @@ class LargeAssetsAuditor implements AuditorInterface
         }
 
         return $issues;
+    }
+
+    /**
+     * Returns the configured threshold in bytes, falling back to the default.
+     */
+    private function getThresholdBytes(): int
+    {
+        $config = Craft::$app->getConfig()->getConfigFromFile('content-audit');
+        return (int) ($config['largeAssetThreshold'] ?? self::DEFAULT_THRESHOLD_BYTES);
     }
 }

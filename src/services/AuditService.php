@@ -1,17 +1,18 @@
 <?php
 
-namespace kooba\contentaudit\services;
+namespace iistudio\contentaudit\services;
 
 use Craft;
 use craft\db\Query;
 use craft\helpers\Json;
 use craft\helpers\StringHelper;
-use kooba\contentaudit\auditors\AuditorInterface;
-use kooba\contentaudit\auditors\BrokenReferencesAuditor;
-use kooba\contentaudit\auditors\LargeAssetsAuditor;
-use kooba\contentaudit\auditors\MissingAltTextAuditor;
-use kooba\contentaudit\auditors\OrphanedAssetsAuditor;
-use kooba\contentaudit\models\AuditIssue;
+use iistudio\contentaudit\auditors\AuditorInterface;
+use iistudio\contentaudit\auditors\BrokenReferencesAuditor;
+use iistudio\contentaudit\auditors\LargeAssetsAuditor;
+use iistudio\contentaudit\auditors\MissingAltTextAuditor;
+use iistudio\contentaudit\auditors\OrphanedAssetsAuditor;
+use iistudio\contentaudit\events\RegisterAuditorsEvent;
+use iistudio\contentaudit\models\AuditIssue;
 use yii\base\Component;
 
 /**
@@ -19,6 +20,12 @@ use yii\base\Component;
  */
 class AuditService extends Component
 {
+    /** Fired during init() so other plugins can add custom auditors. */
+    const EVENT_REGISTER_AUDITORS = 'registerAuditors';
+
+    /** Maximum number of audit runs to keep in the database. */
+    const MAX_STORED_RUNS = 10;
+
     /** @var AuditorInterface[] */
     private array $auditors = [];
 
@@ -34,6 +41,13 @@ class AuditService extends Component
             // new StaleEntriesAuditor(),   <- Phase 3
             // new MissingMetaAuditor(),    <- Phase 3
         ];
+
+        // Allow other plugins to register additional auditors.
+        if ($this->hasEventHandlers(self::EVENT_REGISTER_AUDITORS)) {
+            $event = new RegisterAuditorsEvent(['auditors' => $this->auditors]);
+            $this->trigger(self::EVENT_REGISTER_AUDITORS, $event);
+            $this->auditors = $event->auditors;
+        }
     }
 
     /**
@@ -58,7 +72,7 @@ class AuditService extends Component
     }
 
     /**
-     * Persist a completed run to the database.
+     * Persist a completed run to the database, then prune old runs.
      */
     public function saveRun(array $results, float $duration): void
     {
@@ -71,6 +85,20 @@ class AuditService extends Component
             'dateUpdated' => $now,
             'uid'         => StringHelper::UUID(),
         ])->execute();
+
+        // Keep only the most recent MAX_STORED_RUNS runs to prevent unbounded DB growth.
+        $idsToKeep = (new Query())
+            ->select(['id'])
+            ->from('{{%content_audit_runs}}')
+            ->orderBy(['id' => SORT_DESC])
+            ->limit(self::MAX_STORED_RUNS)
+            ->column();
+
+        if (!empty($idsToKeep)) {
+            Craft::$app->getDb()->createCommand()
+                ->delete('{{%content_audit_runs}}', ['not', ['id' => $idsToKeep]])
+                ->execute();
+        }
     }
 
     /**

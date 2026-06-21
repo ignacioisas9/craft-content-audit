@@ -1,8 +1,8 @@
 {
-    "name": "kooba/craft-content-audit",
+    "name": "iistudio/craft-content-audit",
     "description": "Content audit tools for Craft CMS \u2014 detect orphaned assets, broken entry references, duplicate slugs, and more.",
     "type": "craft-plugin",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "keywords": [
         "craft",
         "cms",
@@ -11,11 +11,11 @@
         "assets",
         "seo"
     ],
-    "license": "proprietary",
+    "license": "craft",
     "authors": [
         {
-            "name": "Kooba",
-            "homepage": "https://kooba.ie"
+            "name": "II Studio",
+            "homepage": "https://github.com/ignacioisas9"
         }
     ],
     "require": {
@@ -23,19 +23,19 @@
     },
     "autoload": {
         "psr-4": {
-            "kooba\\contentaudit\\": "src/"
+            "iistudio\\contentaudit\\": "src/"
         }
     },
     "extra": {
-        "class": "kooba\\contentaudit\\ContentAudit",
+        "class": "iistudio\\contentaudit\\ContentAudit",
         "handle": "content-audit",
         "name": "Content Audit",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "description": "Audit your Craft CMS content for orphaned assets, broken references, and more.",
-        "developer": "Kooba",
-        "developerUrl": "https://kooba.ie",
-        "documentationUrl": "https://github.com/kooba/craft-content-audit",
-        "changelogUrl": "https://raw.githubusercontent.com/kooba/craft-content-audit/main/CHANGELOG.md",
+        "developer": "II Studio",
+        "developerUrl": "https://github.com/ignacioisas9",
+        "documentationUrl": "https://github.com/ignacioisas9/craft-content-audit",
+        "changelogUrl": "https://raw.githubusercontent.com/ignacioisas9/craft-content-audit/main/CHANGELOG.md",
         "hasCpSection": true,
         "hasCpSettings": false
     }

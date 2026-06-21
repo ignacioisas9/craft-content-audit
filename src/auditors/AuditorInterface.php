@@ -1,8 +1,8 @@
 <?php
 
-namespace kooba\contentaudit\auditors;
+namespace iistudio\contentaudit\auditors;
 
-use kooba\contentaudit\models\AuditIssue;
+use iistudio\contentaudit\models\AuditIssue;
 
 /**
  * Interface for all content auditors.

@@ -49,9 +49,11 @@
             {% endfor %}
 
         {% else %}
-            {# No run yet — show the planned checks as disabled items #}
+            {# No run yet — list all registered auditors as disabled items #}
             <li class="nav-heading">{{ "Checks"|t('content-audit') }}</li>
-            <li class="nav-item--disabled">{{ "Orphaned Assets"|t('content-audit') }}</li>
+            {% for label in auditorLabels %}
+                <li class="nav-item--disabled">{{ label|t('content-audit') }}</li>
+            {% endfor %}
         {% endif %}
     </ul>
 
@@ -137,6 +139,14 @@
 {% block content %}
 <div id="content-audit-cp">
 
+    {# Audit error notice #}
+    {% if auditError is defined and auditError %}
+        <div class="pane" style="margin-bottom: 1.5rem; border-left: 4px solid #e74c3c; padding: 1rem 1.25rem;">
+            <strong style="color: #e74c3c;">{{ "Audit error"|t('content-audit') }}</strong>
+            <p style="margin: .25rem 0 0; color: var(--medium-text-color);">{{ auditError }}</p>
+        </div>
+    {% endif %}
+
     {# Pre-run state #}
     {% if results is null %}
         <div class="pane" style="text-align:center; padding: 3rem 2rem;">
@@ -149,6 +159,8 @@
 
     {# Results state #}
     {% else %}
+
+        {% set rowLimit = 100 %}
 
         {% set totalIssues = 0 %}
         {% for handle, group in results %}
@@ -195,6 +207,9 @@
                     {% if group.issues|length == 0 %}
                         <p style="color: var(--medium-text-color); margin: 0;">{{ "No issues found."|t('content-audit') }}</p>
                     {% else %}
+                        {% set visibleIssues = group.issues|slice(0, rowLimit) %}
+                        {% set hiddenCount   = group.issues|length - visibleIssues|length %}
+
                         <div class="tableview">
                             <table class="data fullwidth">
                                 <thead>
@@ -207,7 +222,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for issue in group.issues %}
+                                    {% for issue in visibleIssues %}
                                         <tr>
                                             {% for col in group.columns %}
                                                 <td {% if loop.first %}style="font-weight:500;"{% else %}style="color:var(--medium-text-color);"{% endif %}>
@@ -246,6 +261,12 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        {% if hiddenCount > 0 %}
+                            <p style="margin: .75rem 0 0; font-size: .85rem; color: var(--medium-text-color);">
+                                {{ 'Showing first {limit} of {total} issues.'|t('content-audit', {limit: rowLimit, total: group.issues|length}) }}
+                            </p>
+                        {% endif %}
                     {% endif %}
                 </div>
             {% endfor %}

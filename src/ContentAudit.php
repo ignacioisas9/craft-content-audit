@@ -1,12 +1,12 @@
 <?php
 
-namespace kooba\contentaudit;
+namespace iistudio\contentaudit;
 
 use Craft;
 use craft\base\Plugin;
 use craft\events\RegisterUrlRulesEvent;
 use craft\web\UrlManager;
-use kooba\contentaudit\services\AuditService;
+use iistudio\contentaudit\services\AuditService;
 use yii\base\Event;
 
 /**
@@ -31,8 +31,8 @@ class ContentAudit extends Plugin
     {
         parent::init();
 
-        // Register alias so @kooba/contentaudit resolves to the plugin root (one level up from src/)
-        Craft::setAlias('@kooba/contentaudit', dirname($this->basePath));
+        // Register alias so @iistudio/contentaudit resolves to the plugin root (one level up from src/)
+        Craft::setAlias('@iistudio/contentaudit', dirname($this->basePath));
 
         // Register CP URL rules
         if (Craft::$app->getRequest()->getIsCpRequest()) {

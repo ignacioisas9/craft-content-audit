@@ -1,6 +1,6 @@
 <?php
 
-namespace kooba\contentaudit\migrations;
+namespace iistudio\contentaudit\migrations;
 
 use craft\db\Migration;
 

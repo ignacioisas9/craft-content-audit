@@ -1,11 +1,11 @@
 <?php
 
-namespace kooba\contentaudit\auditors;
+namespace iistudio\contentaudit\auditors;
 
 use Craft;
 use craft\db\Query;
 use craft\elements\Asset;
-use kooba\contentaudit\models\AuditIssue;
+use iistudio\contentaudit\models\AuditIssue;
 
 /**
  * Detects assets that are uploaded to Craft but not referenced

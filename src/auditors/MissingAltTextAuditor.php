@@ -1,19 +1,18 @@
 <?php
 
-namespace kooba\contentaudit\auditors;
+namespace iistudio\contentaudit\auditors;
 
 use Craft;
 use craft\db\Query;
 use craft\elements\Asset;
-use kooba\contentaudit\models\AuditIssue;
+use iistudio\contentaudit\models\AuditIssue;
 
 /**
  * Detects assets that have no alt text set.
  *
- * Uses the element query API to load assets and checks $asset->alt via
- * PHP rather than a raw SQL WHERE clause. This avoids issues with Craft 5's
- * content architecture where native field values may not live in the column
- * we'd expect in craft_assets.
+ * Loads canonical assets via the element API and checks $asset->alt in PHP.
+ * This approach handles Craft 5's content architecture where the native alt
+ * field value may not live in the craft_assets table column directly.
  */
 class MissingAltTextAuditor implements AuditorInterface
 {
@@ -41,9 +40,7 @@ class MissingAltTextAuditor implements AuditorInterface
     {
         $issues = [];
 
-        // Load all canonical, non-deleted assets via the element API.
-        // Filtering in PHP avoids SQL column assumptions about where Craft 5
-        // stores the native alt field value.
+        // Load all canonical, non-deleted asset IDs.
         $canonicalIds = (new Query())
             ->select(['e.id'])
             ->from(['e' => '{{%elements}}'])
@@ -65,7 +62,7 @@ class MissingAltTextAuditor implements AuditorInterface
             ->all();
 
         foreach ($assets as $asset) {
-            // Check the live PHP property — handles any storage location.
+            // Check via the PHP property — handles any storage location in Craft 5.
             if (trim((string) ($asset->alt ?? '')) !== '') {
                 continue;
             }
