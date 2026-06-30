@@ -1,6 +1,6 @@
 {
     "name": "iistudio/craft-content-audit",
-    "description": "Content audit tools for Craft CMS \u2014 detect orphaned assets, broken entry references, duplicate slugs, and more.",
+    "description": "Content audit tools for Craft CMS — detect orphaned assets, broken entry references, duplicate slugs, and more.",
     "type": "craft-plugin",
     "version": "1.0.1",
     "keywords": [
@@ -18,6 +18,11 @@
             "homepage": "https://github.com/ignacioisas9"
         }
     ],
+    "support": {
+        "issues": "https://github.com/ignacioisas9/craft-content-audit/issues",
+        "source": "https://github.com/ignacioisas9/craft-content-audit",
+        "docs": "https://github.com/ignacioisas9/craft-content-audit/blob/main/README.md"
+    },
     "require": {
         "craftcms/cms": "^5.0.0"
     },
@@ -30,7 +35,6 @@
         "class": "iistudio\\contentaudit\\ContentAudit",
         "handle": "content-audit",
         "name": "Content Audit",
-        "version": "1.0.1",
         "description": "Audit your Craft CMS content for orphaned assets, broken references, and more.",
         "developer": "II Studio",
         "developerUrl": "https://github.com/ignacioisas9",
